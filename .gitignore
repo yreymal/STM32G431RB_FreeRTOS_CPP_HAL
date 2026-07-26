@@ -1,0 +1,31 @@
+# CMake and Ninja build output
+/build/
+/cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+build.ninja
+.ninja_deps
+.ninja_log
+
+# Generated firmware artifacts
+*.elf
+*.hex
+*.bin
+*.map
+*.lst
+*.su
+
+# User-specific CMake configuration
+CMakeUserPresets.json
+
+# STM32CubeMX local metadata
+.mxproject
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~

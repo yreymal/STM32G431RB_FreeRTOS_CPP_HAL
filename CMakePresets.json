@@ -1,0 +1,102 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 22,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_COLOR_DIAGNOSTICS": "ON",
+                "ENABLE_COLORED_OUTPUT": "ON"
+            },
+            "environment": {
+                "CLICOLOR": "1",
+                "CLICOLOR_FORCE": "1",
+                "NINJA_STATUS": "\u001b[1;36m[%f/%t %p]\u001b[0m "
+            }
+        },
+        {
+            "name": "stm32-debug",
+            "displayName": "STM32 Debug",
+            "description": "STM32G431RB firmware with debug information",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "stm32-release",
+            "displayName": "STM32 Release",
+            "description": "Optimized STM32G431RB firmware",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "Debug",
+            "displayName": "Debug (legacy name)",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "Release",
+            "displayName": "Release (legacy name)",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "stm32-debug",
+            "displayName": "Build STM32 Debug",
+            "configurePreset": "stm32-debug"
+        },
+        {
+            "name": "stm32-release",
+            "displayName": "Build STM32 Release",
+            "configurePreset": "stm32-release"
+        },
+        {
+            "name": "stm32-debug-verbose",
+            "displayName": "Build STM32 Debug (verbose)",
+            "configurePreset": "stm32-debug",
+            "verbose": true
+        },
+        {
+            "name": "stm32-release-verbose",
+            "displayName": "Build STM32 Release (verbose)",
+            "configurePreset": "stm32-release",
+            "verbose": true
+        },
+        {
+            "name": "Debug",
+            "configurePreset": "Debug"
+        },
+        {
+            "name": "Release",
+            "configurePreset": "Release"
+        },
+        {
+            "name": "Debug-Verbose",
+            "configurePreset": "Debug",
+            "verbose": true
+        },
+        {
+            "name": "Release-Verbose",
+            "configurePreset": "Release",
+            "verbose": true
+        }
+    ]
+}
