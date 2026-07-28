@@ -22,6 +22,8 @@ CMakeUserPresets.json
 
 # STM32CubeMX local metadata
 .mxproject
+Core/Src/Backup/
+Core/Inc/Backup/
 
 # Editors and operating systems
 .DS_Store

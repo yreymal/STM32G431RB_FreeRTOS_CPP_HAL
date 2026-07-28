@@ -13,6 +13,7 @@
             "binaryDir": "${sourceDir}/build/${presetName}",
             "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
             "cacheVariables": {
+                "ARM_GNU_TOOLCHAIN_ROOT": "/Applications/ArmGNUToolchain/12.3.rel1/arm-none-eabi",
                 "CMAKE_COLOR_DIAGNOSTICS": "ON",
                 "ENABLE_COLORED_OUTPUT": "ON"
             },
