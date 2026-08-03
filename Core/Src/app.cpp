@@ -4,10 +4,13 @@
  */
 #include "app.h"
 #include "main.h"
-
+#include "seven_segment_display.hpp"
 /* FreeRTOS.h contains kernel types/configuration; task.h contains task APIs. */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
+#include <cstdint>
+
 
 /*
  * Names inside an anonymous namespace are visible only in this source file.
@@ -25,43 +28,35 @@ public:
      */
     void setup() noexcept
     {
-        /*
-         * xTaskCreate() arguments, in order:
-         *
-         * 1. led_task:
-         *      Function that the new task will execute.
-         *
-         * 2. "LED":
-         *      Human-readable task name used by debuggers.
-         *
-         * 3. 256:
-         *      Stack depth in 32-bit words, not bytes. On this MCU that is
-         *      256 * 4 = 1024 bytes, allocated from the FreeRTOS heap.
-         *
-         * 4. nullptr:
-         *      Optional value passed to led_task(void *). No value is needed.
-         *
-         * 5. tskIDLE_PRIORITY + 1:
-         *      Priority 1, one level above the idle task at priority 0.
-         *
-         * 6. nullptr:
-         *      Optional place to receive a TaskHandle_t. We do not need to
-         *      control this task from elsewhere, so no handle is stored.
-         */
-        const BaseType_t task_created = xTaskCreate(
-            led_task,
-            "LED",
+    
+        display_value_queue_ =  xQueueCreate(1U,sizeof(std::uint16_t));
+
+        if(display_value_queue_ == nullptr){
+            Error_Handler();
+        }
+
+        const BaseType_t display_task_created = xTaskCreate(
+            display_task,
+            "DISPLAY",
             256,
             nullptr,
-            tskIDLE_PRIORITY + 1,
+            tskIDLE_PRIORITY + 2,
             nullptr);
-
         /* pdPASS means the task and its stack were allocated successfully. */
-        if (task_created != pdPASS)
+        if (display_task_created != pdPASS)
         {
             /* Most likely the FreeRTOS heap did not contain enough free RAM. */
             Error_Handler();
         }
+        
+        const BaseType_t increaseNumber = xTaskCreate(
+            numberIncrease,
+            "NUMBER",
+            256,
+            nullptr,
+            tskIDLE_PRIORITY + 1,
+            nullptr
+        );
 
         /*
          * Start scheduling the ready tasks. After this call, FreeRTOS chooses
@@ -87,55 +82,43 @@ public:
     }
 
 private:
+
+    inline static QueueHandle_t display_value_queue_{};
+    
     /*
      * A FreeRTOS task function must have the signature void function(void *).
      * It is static because FreeRTOS cannot supply a C++ object ("this" pointer)
      * when it calls the function.
      */
-    static void led_task(void *argument) noexcept
-    {
-        /* This task was created with nullptr, so no argument needs processing. */
+    static void display_task(void *argument) noexcept{
         (void) argument;
+        display::Display seven_segment{};
+        
+        std::uint16_t value{};
 
-        /*
-         * Peripheral registers cannot be used until their bus clock is on.
-         * Enabling an already-enabled GPIOA clock is safe.
-         */
-        __HAL_RCC_GPIOA_CLK_ENABLE();
-
-        /*
-         * Configure PA5, which is connected to the Nucleo board's user LED:
-         *   - output push-pull: actively drives the pin low or high;
-         *   - no pull resistor: the output driver already controls the level;
-         *   - low speed: sufficient for a slowly blinking LED.
-         */
-        GPIO_InitTypeDef led_gpio = {};
-        led_gpio.Pin = GPIO_PIN_5;
-        led_gpio.Mode = GPIO_MODE_OUTPUT_PP;
-        led_gpio.Pull = GPIO_NOPULL;
-        led_gpio.Speed = GPIO_SPEED_FREQ_LOW;
-        HAL_GPIO_Init(GPIOA, &led_gpio);
-
-        /* Start from a known state: PA5 low means the user LED is off. */
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-
-        /*
-         * A task normally contains an infinite loop. It returns control to the
-         * scheduler whenever it blocks, waits, or explicitly yields.
-         */
-        for (;;)
-        {
-            /* Change PA5 from low to high or from high to low. */
-            HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-
-            /*
-             * Convert 1000 milliseconds to RTOS ticks and block this task.
-             * This is not a busy wait: while the LED task sleeps, FreeRTOS can
-             * run other ready tasks or the idle task.
-             */
+        for(;;){
+            if(xQueueReceive(
+                display_value_queue_,&value, 0U) == pdPASS){
+                    (void)seven_segment.setNumber(value);
+                    (void)seven_segment.encodeNumber();
+                
+                }
+                    (void)seven_segment.show_digit_on_display();
+                    vTaskDelay(pdMS_TO_TICKS(1));
+            
+        }
+    }
+    static void numberIncrease(void *argument) noexcept{
+        (void)argument;
+        std::uint16_t number = 1234U;
+        
+        for(;;){
+            (void)xQueueOverwrite(display_value_queue_, &number);
+            ++number;
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
+
 };
 
 /*
