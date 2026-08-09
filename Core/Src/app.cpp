@@ -58,6 +58,11 @@ public:
             nullptr
         );
 
+        if (increaseNumber != pdPASS)
+        {
+            Error_Handler();
+        }
+
         /*
          * Start scheduling the ready tasks. After this call, FreeRTOS chooses
          * which task runs and performs context switches on every RTOS tick.
@@ -114,6 +119,8 @@ private:
         
         for(;;){
             (void)xQueueOverwrite(display_value_queue_, &number);
+            //number = static_cast<std::uint16_t>(
+            //    (number + 1U) % 10'000U);
             ++number;
             vTaskDelay(pdMS_TO_TICKS(1000));
         }

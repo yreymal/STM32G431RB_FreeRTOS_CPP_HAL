@@ -49,14 +49,16 @@ namespace display {
 
 Status Display::show_digit_on_display(){
 
+    /* Turn off every digit before changing the segment pattern. */
+    HAL_GPIO_WritePin(GPIOC, kAllDigits_Msk, GPIO_PIN_RESET);
+
     if(state_.digits[state_.activeDigit]!=kDispalyBlankDigit){
 
     /* write number's segments to GPIOA */
-     HAL_GPIO_WritePin(GPIOA, kAllSegments, GPIO_PIN_SET);
-     HAL_GPIO_WritePin(GPIOA, kDigitPatterns[state_.digits[state_.activeDigit]], GPIO_PIN_RESET);
+     HAL_GPIO_WritePin(GPIOA, kAllSegments, GPIO_PIN_RESET);
+     HAL_GPIO_WritePin(GPIOA, kDigitPatterns[state_.digits[state_.activeDigit]], GPIO_PIN_SET);
     
      /* light a display's digit */
-     HAL_GPIO_WritePin(GPIOC, kAllDigits_Msk, GPIO_PIN_RESET);
      HAL_GPIO_WritePin(GPIOC, kDigitsMask[state_.activeDigit], GPIO_PIN_SET);
         
     }
