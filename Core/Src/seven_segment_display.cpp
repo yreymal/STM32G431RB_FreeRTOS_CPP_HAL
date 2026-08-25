@@ -5,6 +5,7 @@
 #include "stm32g4xx_hal_gpio.h"
 #include "seven_segment_display.hpp"
 #include "status.hpp"
+#include "task.h"
 
 namespace{
     // Section 1: logical segments mapped to physical GPIOA output bits. The names
@@ -17,7 +18,7 @@ namespace{
     constexpr std::uint16_t kSegmentF = F_Pin;
     constexpr std::uint16_t kSegmentG = G_Pin;
     constexpr std::uint16_t kAllSegments = A_Pin|B_Pin|C_Pin|D_Pin|E_Pin|F_Pin|G_Pin;
-    /* pins masks for digits on display with common annode */
+    /* Pin masks for digits on a common-anode display. */
     constexpr std::uint16_t kDigit1_Msk = (1UL<<2UL);
     constexpr std::uint16_t kDigit2_Msk = (1UL<<3UL);
     constexpr std::uint16_t kDigit3_Msk = (1UL<<10UL);
@@ -40,19 +41,41 @@ namespace{
     0U,
     kSegmentE,
    };
-} /* annon namespace*/
+} /* anonymous namespace */
 
 
 
 
 namespace display {
 
+    void Display::start(){
+        if(!isStarted_){
+        display_value_queue_ = xQueueCreate(1U, sizeof(std::uint16_t));
+
+        if(display_value_queue_ == nullptr){
+            Error_Handler();
+        }
+
+        const BaseType_t display_task_created = xTaskCreate(
+            task,
+            "DISPLAY",
+            256,
+            this,
+            tskIDLE_PRIORITY + 2,
+            nullptr);
+        if(display_task_created!= pdPASS){
+            Error_Handler();
+        }
+        isStarted_ = true;
+    }
+    }
+
 Status Display::show_digit_on_display(){
 
     /* Turn off every digit before changing the segment pattern. */
     HAL_GPIO_WritePin(GPIOC, kAllDigits_Msk, GPIO_PIN_RESET);
 
-    if(state_.digits[state_.activeDigit]!=kDispalyBlankDigit){
+    if(state_.digits[state_.activeDigit]!=kDisplayBlankDigit){
 
     /* write number's segments to GPIOA */
      HAL_GPIO_WritePin(GPIOA, kAllSegments, GPIO_PIN_RESET);
@@ -101,10 +124,32 @@ Status Display::encodeNumber(){
     }
     else
     {
-        state_.digits[i] = kDispalyBlankDigit;
+        state_.digits[i] = kDisplayBlankDigit;
      }
    }
 
     return Status::kOk;
  }
+
+    /*
+     * A FreeRTOS task function must have the signature void function(void *).
+     * It is static because FreeRTOS cannot supply a C++ object ("this" pointer)
+     * when it calls the function.
+     */
+   void Display::task(void *argument) noexcept{
+        auto* self = static_cast<Display*>(argument);
+        std::uint16_t value{};
+
+        for(;;){
+            if(xQueueReceive(
+                self->display_value_queue_,&value, 0U) == pdPASS){
+                    (void)self->setNumber(value);
+                    (void)self->encodeNumber();
+
+                }
+                    (void)self->show_digit_on_display();
+                    vTaskDelay(pdMS_TO_TICKS(1));
+
+        }
+    }
 }/* namespace display*/
