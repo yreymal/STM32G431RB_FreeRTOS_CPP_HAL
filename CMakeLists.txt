@@ -167,6 +167,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     "${PROJECT_SRC_DIR}/app.cpp"
     "${PROJECT_SRC_DIR}/seven_segment_display.cpp"
+    "${PROJECT_SRC_DIR}/timerWrapper.cpp"
 )
 
 # Add include paths

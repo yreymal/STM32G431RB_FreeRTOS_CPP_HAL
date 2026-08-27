@@ -63,6 +63,7 @@ namespace display {
             this,
             tskIDLE_PRIORITY + 2,
             nullptr);
+            
         if(display_task_created!= pdPASS){
             Error_Handler();
         }

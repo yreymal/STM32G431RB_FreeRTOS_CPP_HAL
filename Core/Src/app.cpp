@@ -10,11 +10,14 @@
 #include "task.h"
 #include "queue.h"
 #include <cstdint>
-
+#include"timerWrapper.hpp"
+#include "tim.h"
 class Application{
 public:
 void start() noexcept{
     display_.start();
+    tim4_.startPWM();
+    
     vTaskStartScheduler();
     Error_Handler();
 }
@@ -23,7 +26,7 @@ void loop() noexcept{}
 
 private:
 display::Display display_;
-
+tim_wr::TimerWrapper tim4_{htim4};
 };
 
 namespace{
