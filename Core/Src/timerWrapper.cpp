@@ -1,6 +1,11 @@
 #include "timerWrapper.hpp"
 #include "main.h"
 #include "task.h"
+#include <cmath>
+
+namespace{
+    tim_wr::SinPwm* tim4Ch4SinPwm{nullptr};
+}
 
 namespace tim_wr{
     void TimerWrapper::startPWM(){
@@ -10,20 +15,22 @@ namespace tim_wr{
             Error_Handler();
         }
 
-        const BaseType_t display_task_created = xTaskCreate(
-            task,
+        const BaseType_t display_PWMtask_created = xTaskCreate(
+            PWMtask,
             "PWM",
             256,
             this,
             tskIDLE_PRIORITY + 2,
             nullptr);
             
-        if(display_task_created!= pdPASS){
+        if(display_PWMtask_created!= pdPASS){
             Error_Handler();
         }
     }
 
-    void TimerWrapper::task(void *argument) noexcept{
+
+
+    void TimerWrapper::PWMtask(void *argument) noexcept{
         auto* self = static_cast<TimerWrapper*>(argument);
 
        const std::uint32_t arr = __HAL_TIM_GET_AUTORELOAD(&self->htim_);
@@ -52,6 +59,59 @@ namespace tim_wr{
         __HAL_TIM_SET_COMPARE(&self->htim_, TIM_CHANNEL_1, pulse);
          vTaskDelay(pdMS_TO_TICKS(20));
         }
+        
+    }
+
+
+
+    void SinPwm::start(void){
+            
+    tim4Ch4SinPwm = this;
+       
+       if(HAL_TIM_PWM_Start_IT(&this->htim_, TIM_CHANNEL_4)!=HAL_OK){
+        Error_Handler();
+       }
+
+    }
+
+
+
+
+    void SinPwm::onPwmPulseFinished(TIM_HandleTypeDef* htim)noexcept{
+        if(htim!=&htim_ || htim->Channel!=HAL_TIM_ACTIVE_CHANNEL_4){
+            return;
+        }
+        updateSinForm();
+    }
+
+
+
+
+
+    void SinPwm::updateSinForm(){
+         
+        steps++;
+      if(steps>=200){
+        steps = 0;
+      }
+     angel = (360.0F / 200.0F) * static_cast<float>(this->steps);
+
+     const std::uint32_t arr = __HAL_TIM_GET_AUTORELOAD(&htim_);
+
+    const float duty =
+    0.5F + 0.45F *
+    std::sin(angel * 3.14159265F / 180.0F);
+
+    pulse_per_angel = static_cast<std::uint16_t>(
+    std::lround(duty * static_cast<float>(arr)));
+
+      __HAL_TIM_SET_COMPARE(&htim_, TIM_CHANNEL_4, pulse_per_angel);
     }
 
 }
+
+  extern "C" void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim){
+        if(tim4Ch4SinPwm!=nullptr){
+            tim4Ch4SinPwm->onPwmPulseFinished(htim);
+        }
+  }

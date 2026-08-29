@@ -17,6 +17,7 @@ public:
 void start() noexcept{
     display_.start();
     tim4_.startPWM();
+    sinPWMCh4_.start();
     
     vTaskStartScheduler();
     Error_Handler();
@@ -27,6 +28,7 @@ void loop() noexcept{}
 private:
 display::Display display_;
 tim_wr::TimerWrapper tim4_{htim4};
+tim_wr::SinPwm sinPWMCh4_{htim4};
 };
 
 namespace{
