@@ -4,16 +4,16 @@
 #include "status.hpp"
 #include "FreeRTOS.h"
 #include "queue.h"
+#include "seven_segment_display.hpp"
+namespace wr{
 
-namespace tim_wr{
-
-class TimerWrapper{
+class PwmWrapper{
 
     public:
     void startPWM();
-    explicit TimerWrapper(TIM_HandleTypeDef &htim)noexcept:htim_{htim}{};
-    TimerWrapper(const TimerWrapper&) = delete;
-    TimerWrapper& operator=(const TimerWrapper &) = delete;
+    explicit PwmWrapper(TIM_HandleTypeDef &htim)noexcept:htim_{htim}{};
+    PwmWrapper(const PwmWrapper&) = delete;
+    PwmWrapper& operator=(const PwmWrapper &) = delete;
 
     private:
      TIM_HandleTypeDef& htim_;
@@ -40,3 +40,15 @@ class SinPwm{
 };
 }
 
+namespace adc{
+    class ADC{
+        public:
+       explicit ADC(ADC_HandleTypeDef* hadc, display::Display& display)noexcept:hadc_{hadc},display_{display}{};
+        void startADC();
+        void onADCFinished(ADC_HandleTypeDef *hadc);
+        private:
+        ADC_HandleTypeDef* hadc_;
+        display::Display& display_;
+    };
+
+}

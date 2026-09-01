@@ -153,4 +153,9 @@ Status Display::encodeNumber(){
 
         }
     }
+
+    BaseType_t Display::writeToDisplay(std::uint16_t value, BaseType_t* higherPriorityTaskWoken)noexcept{
+
+        return xQueueOverwriteFromISR(display::Display::display_value_queue_,&value, higherPriorityTaskWoken);
+    }
 }/* namespace display*/

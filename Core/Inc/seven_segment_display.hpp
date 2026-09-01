@@ -42,6 +42,7 @@ void start();
 Display() = default;
 Display& operator=(const Display&) = delete;
 Display(const Display&) = delete;
+BaseType_t writeToDisplay(std::uint16_t value, BaseType_t* higherPriorityTaskWoken)noexcept;
 
 };
 } //namespace display

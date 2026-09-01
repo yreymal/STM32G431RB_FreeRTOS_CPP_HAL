@@ -10,12 +10,14 @@
 #include "task.h"
 #include "queue.h"
 #include <cstdint>
-#include"timerWrapper.hpp"
+#include "wrapper.hpp"
 #include "tim.h"
+#include "adc.h"
 class Application{
 public:
 void start() noexcept{
     display_.start();
+    adc_Ch1_.startADC();
     tim4_.startPWM();
     sinPWMCh4_.start();
     
@@ -27,8 +29,9 @@ void loop() noexcept{}
 
 private:
 display::Display display_;
-tim_wr::TimerWrapper tim4_{htim4};
-tim_wr::SinPwm sinPWMCh4_{htim4};
+wr::PwmWrapper tim4_{htim4};
+wr::SinPwm sinPWMCh4_{htim4};
+adc::ADC adc_Ch1_{&hadc1, display_};
 };
 
 namespace{

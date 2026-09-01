@@ -1,14 +1,17 @@
-#include "timerWrapper.hpp"
+#include "wrapper.hpp"
 #include "main.h"
 #include "task.h"
 #include <cmath>
+#include "stm32g4xx_it.h"
+
 
 namespace{
-    tim_wr::SinPwm* tim4Ch4SinPwm{nullptr};
+    wr::SinPwm* tim4Ch4SinPwm{nullptr};
+    adc::ADC* adc_Ch1{nullptr};
 }
 
-namespace tim_wr{
-    void TimerWrapper::startPWM(){
+namespace wr{
+    void PwmWrapper::startPWM(){
         pwmQueue = xQueueCreate(1U, sizeof(std::uint16_t));
 
         if(pwmQueue==nullptr){
@@ -30,8 +33,8 @@ namespace tim_wr{
 
 
 
-    void TimerWrapper::PWMtask(void *argument) noexcept{
-        auto* self = static_cast<TimerWrapper*>(argument);
+    void PwmWrapper::PWMtask(void *argument) noexcept{
+        auto* self = static_cast<PwmWrapper*>(argument);
 
        const std::uint32_t arr = __HAL_TIM_GET_AUTORELOAD(&self->htim_);
        const std::uint16_t step = 100U;
@@ -110,8 +113,36 @@ namespace tim_wr{
 
 }
 
-  extern "C" void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim){
+extern "C" void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim){
         if(tim4Ch4SinPwm!=nullptr){
             tim4Ch4SinPwm->onPwmPulseFinished(htim);
         }
+  }
+
+  namespace adc{
+    void ADC::startADC(){
+        adc_Ch1 = this;
+       if( HAL_ADC_Start_IT(hadc_)!=HAL_OK){
+        Error_Handler();
+       }
+
+    }
+
+    void ADC::onADCFinished(ADC_HandleTypeDef *hadc){
+        if(hadc!=hadc_){
+            return;
+        }
+         std::uint16_t adcValue = static_cast<std::uint16_t>(HAL_ADC_GetValue(hadc));
+       uint16_t voltage = static_cast<std::uint16_t>((adcValue*3.3)/4095);
+       BaseType_t taskWoken = pdFALSE;
+       display_.writeToDisplay(voltage, &taskWoken);
+       portYIELD_FROM_ISR(taskWoken);
+    }
+  }
+
+  extern "C" void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc){
+    if(adc_Ch1!=nullptr){
+        adc_Ch1->onADCFinished(hadc);
+    }
+   
   }
