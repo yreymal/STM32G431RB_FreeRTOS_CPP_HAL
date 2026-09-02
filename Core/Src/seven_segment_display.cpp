@@ -50,7 +50,7 @@ namespace display {
 
     void Display::start(){
         if(!isStarted_){
-        display_value_queue_ = xQueueCreate(1U, sizeof(std::uint16_t));
+        display_value_queue_ = xQueueCreate(1U, sizeof(DisplayUpdate));
 
         if(display_value_queue_ == nullptr){
             Error_Handler();
@@ -76,11 +76,23 @@ Status Display::show_digit_on_display(){
     /* Turn off every digit before changing the segment pattern. */
     HAL_GPIO_WritePin(GPIOC, kAllDigits_Msk, GPIO_PIN_RESET);
 
-    if(state_.digits[state_.activeDigit]!=kDisplayBlankDigit){
+    const auto digit = state_.digits[state_.activeDigit];
+    const std::size_t decimalPointDigitIndex =
+        state_.digits.size() - state_.decimalPlaces - 1U;
+    const bool showDecimalPoint = state_.decimalPlaces != 0U &&
+        state_.activeDigit == decimalPointDigitIndex;
+
+    /* The decimal-point cathode has the same active-low polarity as A-G. */
+    HAL_GPIO_WritePin(
+        Point_GPIO_Port,
+        Point_Pin,
+        showDecimalPoint ? GPIO_PIN_RESET : GPIO_PIN_SET);
+
+    if(digit != kDisplayBlankDigit){
 
     /* write number's segments to GPIOA */
      HAL_GPIO_WritePin(GPIOA, kAllSegments, GPIO_PIN_RESET);
-     HAL_GPIO_WritePin(GPIOA, kDigitPatterns[state_.digits[state_.activeDigit]], GPIO_PIN_SET);
+     HAL_GPIO_WritePin(GPIOA, kDigitPatterns[digit], GPIO_PIN_SET);
     
      /* light a display's digit */
      HAL_GPIO_WritePin(GPIOC, kDigitsMask[state_.activeDigit], GPIO_PIN_SET);
@@ -119,7 +131,14 @@ Status Display::encodeNumber(){
     state_.digits[2]= static_cast<std::uint8_t>((state_.number / 10U)  % 10U);
     state_.digits[3] = static_cast<std::uint8_t>(state_.number % 10U);
 
+    const std::size_t decimalPointDigitIndex =
+        state_.digits.size() - state_.decimalPlaces - 1U;
+
     for(std::size_t i = 0; i < state_.digits.size() -1; ++i){
+    /* Preserve the leading zero that carries the point: 0.42, not .42. */
+    if(state_.decimalPlaces != 0U && i == decimalPointDigitIndex){
+        break;
+    }
     if(state_.digits[i] != 0U){
         break;
     }
@@ -139,12 +158,15 @@ Status Display::encodeNumber(){
      */
    void Display::task(void *argument) noexcept{
         auto* self = static_cast<Display*>(argument);
-        std::uint16_t value{};
+        DisplayUpdate update{};
 
         for(;;){
             if(xQueueReceive(
-                self->display_value_queue_,&value, 0U) == pdPASS){
-                    (void)self->setNumber(value);
+                self->display_value_queue_,&update, 0U) == pdPASS){
+                    (void)self->setNumber(update.number);
+                    self->state_.decimalPlaces =
+                        update.decimalPlaces <= kMaxDecimalPlaces ?
+                        update.decimalPlaces : kMaxDecimalPlaces;
                     (void)self->encodeNumber();
 
                 }
@@ -156,6 +178,16 @@ Status Display::encodeNumber(){
 
     BaseType_t Display::writeToDisplay(std::uint16_t value, BaseType_t* higherPriorityTaskWoken)noexcept{
 
-        return xQueueOverwriteFromISR(display::Display::display_value_queue_,&value, higherPriorityTaskWoken);
+        return writeToDisplay(value, 0U, higherPriorityTaskWoken);
+    }
+
+    BaseType_t Display::writeToDisplay(
+        std::uint16_t value,
+        std::uint8_t decimalPlaces,
+        BaseType_t* higherPriorityTaskWoken) noexcept{
+
+        const DisplayUpdate update{value, decimalPlaces};
+        return xQueueOverwriteFromISR(
+            display_value_queue_, &update, higherPriorityTaskWoken);
     }
 }/* namespace display*/

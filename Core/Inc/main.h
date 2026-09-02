@@ -87,6 +87,8 @@ void Error_Handler(void);
 #define G_GPIO_Port GPIOA
 #define E_Pin GPIO_PIN_11
 #define E_GPIO_Port GPIOA
+#define Point_Pin GPIO_PIN_12
+#define Point_GPIO_Port GPIOA
 #define T_SWDIO_Pin GPIO_PIN_13
 #define T_SWDIO_GPIO_Port GPIOA
 #define T_SWCLK_Pin GPIO_PIN_14

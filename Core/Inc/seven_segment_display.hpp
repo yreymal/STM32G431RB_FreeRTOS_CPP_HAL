@@ -1,7 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include "status.hpp"
 #include "FreeRTOS.h"
 #include "queue.h"
@@ -13,11 +14,20 @@ class Display{
 bool isStarted_ = {false};
 static constexpr std::uint16_t kMaxDisplayNumber = 9'999U;
 static constexpr std::uint8_t kDisplayBlankDigit = 255;
+static constexpr std::size_t kDisplayDigitCount = 4U;
+static constexpr std::uint8_t kMaxDecimalPlaces =
+    static_cast<std::uint8_t>(kDisplayDigitCount - 1U);
 
 struct State{
 std::uint16_t number{};
 std::uint8_t activeDigit{};
-std::array<std::uint8_t, 4U>digits{};
+std::uint8_t decimalPlaces{};
+std::array<std::uint8_t, kDisplayDigitCount>digits{};
+};
+
+struct DisplayUpdate{
+std::uint16_t number{};
+std::uint8_t decimalPlaces{};
 };
 
 State state_{};
@@ -43,6 +53,10 @@ Display() = default;
 Display& operator=(const Display&) = delete;
 Display(const Display&) = delete;
 BaseType_t writeToDisplay(std::uint16_t value, BaseType_t* higherPriorityTaskWoken)noexcept;
+BaseType_t writeToDisplay(
+    std::uint16_t value,
+    std::uint8_t decimalPlaces,
+    BaseType_t* higherPriorityTaskWoken) noexcept;
 
 };
 } //namespace display
