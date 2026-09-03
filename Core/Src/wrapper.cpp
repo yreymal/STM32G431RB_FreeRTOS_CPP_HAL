@@ -133,12 +133,22 @@ extern "C" void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim){
             return;
         }
        const std::uint16_t adcValue = static_cast<std::uint16_t>(HAL_ADC_GetValue(hadc));
-       const std::uint16_t voltageInCentivolts = static_cast<std::uint16_t>(
+
+     //  const std::uint16_t voltageInCentivolts = static_cast<std::uint16_t>(
+       //  std::round((static_cast<float>(adcValue) * 330.0F))/ 4095.0F);
+const std::uint16_t voltageInCentivolts = static_cast<std::uint16_t>(
            ((static_cast<std::uint32_t>(adcValue) * 330U) + 2047U) / 4095U);
        BaseType_t taskWoken = pdFALSE;
        display_.writeToDisplay(voltageInCentivolts, 2U, &taskWoken);
        portYIELD_FROM_ISR(taskWoken);
     }
+
+    void ADC::stopADC(){
+        if(HAL_ADC_Stop_IT(hadc_)!=HAL_OK){
+            Error_Handler();
+        }
+    }   
+
   }
 
   extern "C" void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc){

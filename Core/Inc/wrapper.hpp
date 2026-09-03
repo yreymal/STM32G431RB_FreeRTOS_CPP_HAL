@@ -45,6 +45,9 @@ namespace adc{
         public:
        explicit ADC(ADC_HandleTypeDef* hadc, display::Display& display)noexcept:hadc_{hadc},display_{display}{};
         void startADC();
+        void startAdcDMA();
+        void stopAdcDMA();
+        void stopADC();
         void onADCFinished(ADC_HandleTypeDef *hadc);
         private:
         ADC_HandleTypeDef* hadc_;
