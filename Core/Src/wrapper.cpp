@@ -132,14 +132,24 @@ extern "C" void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim){
         if(hadc!=hadc_){
             return;
         }
-       const std::uint16_t adcValue = static_cast<std::uint16_t>(HAL_ADC_GetValue(hadc));
+       
+       // const std::uint16_t adcValue = static_cast<std::uint16_t>(HAL_ADC_GetValue(hadc));
+    const std::uint16_t adcValue = averageDmaBuffer();
 
      //  const std::uint16_t voltageInCentivolts = static_cast<std::uint16_t>(
        //  std::round((static_cast<float>(adcValue) * 330.0F))/ 4095.0F);
-const std::uint16_t voltageInCentivolts = static_cast<std::uint16_t>(
-           ((static_cast<std::uint32_t>(adcValue) * 330U) + 2047U) / 4095U);
-       BaseType_t taskWoken = pdFALSE;
-       display_.writeToDisplay(voltageInCentivolts, 2U, &taskWoken);
+    // const std::uint16_t voltageInCentivolts = static_cast<std::uint16_t>(
+    //        ((static_cast<std::uint32_t>(adcValue) * 50000U) + 2047U) / 4095U);
+        BaseType_t taskWoken = pdFALSE;
+    //    std::uint16_t temperature = voltageInCentivolts * 100;
+    //    display_.writeToDisplay(temperature, 2U, &taskWoken);
+    constexpr std::uint32_t kAdcReferenceMv = 330U;
+    constexpr std::uint32_t kAdcFullScale = 4095U;
+
+    const std::uint16_t voltageInCentivolts = static_cast<std::uint16_t>(
+            ((static_cast<std::uint32_t>(adcValue) * kAdcReferenceMv) + 2047U) / kAdcFullScale);
+
+    display_.writeToDisplay(voltageInCentivolts, 2U, &taskWoken);
        portYIELD_FROM_ISR(taskWoken);
     }
 
@@ -149,7 +159,32 @@ const std::uint16_t voltageInCentivolts = static_cast<std::uint16_t>(
         }
     }   
 
-  }
+    void ADC::startAdcDMA(){
+        adc_Ch1 = this;
+        if(HAL_ADC_Start_DMA(hadc_, reinterpret_cast<uint32_t*>(dmaBuffer_.data()),
+        static_cast<uint32_t>(dmaBuffer_.size()))!=HAL_OK){
+            Error_Handler();
+        }
+    }
+
+    std::uint16_t ADC::averageDmaBuffer()const noexcept{
+        std::uint32_t tempSum = 0;
+        for(std::size_t i = 0; i <dmaBuffer_.size(); ++i){
+            const std::uint16_t sample = dmaBuffer_[i];
+            tempSum+=sample;
+        }
+
+        std::uint32_t averageValue = ((tempSum + DMAsamples_/2U)/DMAsamples_);
+        return static_cast<std::uint16_t>(averageValue);
+    }
+
+    void ADC::stopAdcDMA(){
+        if(HAL_ADC_Stop_DMA(hadc_)!=HAL_OK){
+            Error_Handler();
+        }
+    }
+
+  
 
   extern "C" void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc){
     if(adc_Ch1!=nullptr){
@@ -157,3 +192,4 @@ const std::uint16_t voltageInCentivolts = static_cast<std::uint16_t>(
     }
    
   }
+}

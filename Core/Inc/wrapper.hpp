@@ -1,6 +1,7 @@
 #pragma once
 #include "main.h"
 #include <cstdint>
+#include <array>
 #include "status.hpp"
 #include "FreeRTOS.h"
 #include "queue.h"
@@ -49,9 +50,13 @@ namespace adc{
         void stopAdcDMA();
         void stopADC();
         void onADCFinished(ADC_HandleTypeDef *hadc);
+        std::uint16_t averageDmaBuffer() const noexcept;
         private:
         ADC_HandleTypeDef* hadc_;
         display::Display& display_;
+        /* DMA variables */
+        static constexpr std::uint8_t DMAsamples_ = 32U;
+        std::array<std::uint16_t, DMAsamples_> dmaBuffer_{};
     };
 
 }

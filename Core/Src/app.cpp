@@ -17,7 +17,8 @@ class Application{
 public:
 void start() noexcept{
     display_.start();
-    adc_Ch1_.startADC();
+    //  adc_Ch1_.startADC();
+    adc_Ch1_.startAdcDMA();
     tim4_.startPWM();
     sinPWMCh4_.start();
     
